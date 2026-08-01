@@ -1,0 +1,7 @@
+fastapi[all]
+sqlalchemy
+asyncpg
+pydantic-settings
+passlib[bcrypt]
+pyjwt
+python-dotenv
