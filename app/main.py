@@ -4,6 +4,7 @@ from scalar_fastapi import get_scalar_api_reference
 
 from app.database import engine, Base 
 from app.models import User, Event, Tickets 
+from app.routers import event
 
 
 @asynccontextmanager
@@ -18,6 +19,9 @@ app = FastAPI(
     lifespan=lifespan,
     title="Ticketing API"
 )
+
+
+app.include_router(event.router)
 
 
 @app.get("/", include_in_schema=False)
