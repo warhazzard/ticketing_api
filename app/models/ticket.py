@@ -11,7 +11,7 @@ class TicketStatus(str, Enum):
     EXPIRED = "expired"
 
 
-class Tickets(Base):
+class Ticket(Base):
     __tablename__ = "tickets"
     id = Column(Integer, primary_key=True, index=True)
     event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
