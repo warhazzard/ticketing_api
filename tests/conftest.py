@@ -1,6 +1,7 @@
 import pytest 
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker 
+from sqlalchemy.pool import NullPool
 import os 
 from dotenv import load_dotenv 
 
@@ -19,7 +20,7 @@ from app.main import app
 
 
 # Create Async test engine
-test_engine = create_async_engine(TEST_DATABASE_URL)
+test_engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool)
 TestingSessionLocal = async_sessionmaker(
     expire_on_commit=False,
     autoflush=False,
