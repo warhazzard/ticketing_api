@@ -1,10 +1,7 @@
 async def test_register_user(client):
-    # Arrange 
-    user_payload = {
-        "email": "user005@example.com",
-        "password": "pass12345"
-    }
-    
+    # Arrange
+    user_payload = {"email": "user005@example.com", "password": "pass12345"}
+
     # ACT
     response = await client.post("/auth/register", json=user_payload)
 
@@ -19,10 +16,7 @@ async def test_register_user(client):
 
 
 async def test_register_duplicate_email(client):
-    user_payload = {
-        "email": "duplicate@example.com",
-        "password": "secure-password"
-    }
+    user_payload = {"email": "duplicate@example.com", "password": "secure-password"}
 
     first_response = await client.post("/auth/register", json=user_payload)
     second_response = await client.post("/auth/register", json=user_payload)
@@ -65,7 +59,7 @@ async def test_user_login(client):
 
 
 async def test_login_with_incorrect_password(client):
-# Arrange
+    # Arrange
     user_payload = {
         "email": "wrongpass@example.com",
         "password": "correct-password",
@@ -88,6 +82,5 @@ async def test_login_with_incorrect_password(client):
     )
 
     # Assert
-    assert login_response.status_code in [400, 401], login_response.text
-    data = login_response.json()
-    assert "detail" in data 
+    assert login_response.status_code == 401, login_response.text
+    assert login_response.json()["detail"] == "Incorrect email or password"

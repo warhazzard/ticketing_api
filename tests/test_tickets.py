@@ -1,8 +1,8 @@
 import asyncio
 from sqlalchemy import select
 
-from app.models.ticket import Ticket
 from app.models.event import Event
+from app.models.ticket import Ticket
 
 
 async def test_authenticated_user_can_purchase_ticket(client, db_session):
@@ -158,6 +158,7 @@ async def test_ticket_purchase_for_sold_out_event_returns_400(client):
     assert response.status_code == 400, response.text
     assert response.json()["detail"] == "No tickets available"
 
+
 async def test_concurrent_ticket_purchases_do_not_oversell(client, db_session):
     # Arrange: Register and log in two different users
     tokens = []
@@ -217,7 +218,6 @@ async def test_concurrent_ticket_purchases_do_not_oversell(client, db_session):
         response for response in responses if response.status_code == 400
     )
     assert failed_response.json()["detail"] == "No tickets available"
-
 
     result = await db_session.execute(
         select(Ticket).where(Ticket.event_id == event_id)
