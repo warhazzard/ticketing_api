@@ -1,3 +1,7 @@
+import asyncio
+from sqlalchemy import select
+
+from app.models.ticket import Ticket
 from app.models.event import Event
 
 
@@ -153,3 +157,78 @@ async def test_ticket_purchase_for_sold_out_event_returns_400(client):
     # 4. Assert
     assert response.status_code == 400, response.text
     assert response.json()["detail"] == "No tickets available"
+
+async def test_concurrent_ticket_purchases_do_not_oversell(client, db_session):
+    # Arrange: Register and log in two different users
+    tokens = []
+    for email in ("buyer_one@test.com", "buyer_two@test.com"):
+        user_payload = {"email": email, "password": "strongpassword123"}
+
+        registration_response = await client.post(
+            "/auth/register",
+            json=user_payload,
+        )
+        assert registration_response.status_code == 200, registration_response.text
+
+        login_response = await client.post(
+            "/auth/login",
+            data={
+                "username": user_payload["email"],
+                "password": user_payload["password"],
+            },
+        )
+        assert login_response.status_code == 200, login_response.text
+        tokens.append(login_response.json()["access_token"])
+
+    first_token, second_token = tokens
+
+    # Arrange: create an event with exactly one ticket available
+    event_response = await client.post(
+        "/events/",
+        json={
+            "name": "Last Ticket Showdown",
+            "date": "2030-09-01T19:00:00+00:00",
+            "total_tickets": 1,
+            "available_tickets": 1,
+        },
+    )
+    assert event_response.status_code == 200, event_response.text
+    event_id = event_response.json()["id"]
+
+    # Act: fire both purchases at the same time
+    responses = await asyncio.gather(
+        client.post(
+            "/tickets/",
+            json={"event_id": event_id},
+            headers={"Authorization": f"Bearer {first_token}"},
+        ),
+        client.post(
+            "/tickets/",
+            json={"event_id": event_id},
+            headers={"Authorization": f"Bearer {second_token}"},
+        ),
+    )
+
+    # Assert: exactly one succeeds and one is rejected (order is nondeterministic)
+    status_codes = sorted(response.status_code for response in responses)
+    assert status_codes == [200, 400], [r.text for r in responses]
+
+    failed_response = next(
+        response for response in responses if response.status_code == 400
+    )
+    assert failed_response.json()["detail"] == "No tickets available"
+
+
+    result = await db_session.execute(
+        select(Ticket).where(Ticket.event_id == event_id)
+    )
+    tickets = result.scalars().all()
+
+    assert len(tickets) == 1
+
+    event = await db_session.get(Event, event_id)
+    assert event is not None
+
+    await db_session.refresh(event)
+
+    assert event.available_tickets == 0

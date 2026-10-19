@@ -27,7 +27,6 @@ TestingSessionLocal = async_sessionmaker(
     bind=test_engine
 )
 
-
 # Fixture to prepare fresh DB for tests
 @pytest.fixture(autouse=True)
 async def setup_database():
@@ -49,7 +48,8 @@ async def db_session():
 async def client(db_session):
     # override fastapi's db dependency to use our test session
     async def override_get_db():
-        yield db_session
+        async with TestingSessionLocal() as session:
+            yield session
 
     app.dependency_overrides[get_db] = override_get_db 
 
